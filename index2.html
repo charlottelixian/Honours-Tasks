@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>EF Tests</title>
+    <script src="http://cogflex.com.au/jspsych/jspsych 6.3.1/jspsych.js"></script>
+    <script src='http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/foundation/5.5.2/js/foundation.min.js'></script>
+    <script src="n-back-trial.js"></script>
+    <script src="http://cogflex.com.au/jspsych/jspsych 6.3.1/plugins/jspsych-html-button-response.js"></script>
+    <script src="http://cogflex.com.au/jspsych/jspsych 6.3.1/plugins/jspsych-html-keyboard-response.js"></script>
+    <script src="http://cogflex.com.au/jspsych/jspsych 6.3.1/custom-plugins/jspsych-categorize-KSD.js"></script>
+    <script src="http://cogflex.com.au/jspsych/jspsych 6.3.1/plugins/jspsych-fullscreen.js"></script>
+    <script src="http://cogflex.com.au/jspsych/jspsych 6.3.1/plugins/jspsych-survey-text.js"></script>
+    <script src="http://cogflex.com.au/jspsych/jspsych 6.3.1/custom-plugins/jspsych-survey-demographics.js"></script>
+    <script src="http://cogflex.com.au/jspsych/jspsych 6.3.1/plugins/jspsych-survey-multi-select.js"></script>
+    <link rel="stylesheet" href="css/jspsych.css">
+    <script src="http://cogflex.com.au/jspsych/jspsych 6.3.1/plugins/jspsych-image-keyboard-response.js"></script>
+    <script src="http://cogflex.com.au/jspsych/jspsych 6.3.1/plugins/jspsych-preload.js"></script>
+  </head>
+  <body>
+  </body>
+  <script>
+    var timeline = [];
+
+
+
+//**********************//
+// Paramaters
+//**********************//
+
+// Modifiable Paramaters
+var experimentname = "nb001"; // Make sure there is a folder on the server with this name
+var sequence = [];
+var nback_practice_sequence = [1,2,3]
+var nback_sequence = jsPsych.randomization.shuffleNoRepeats([2,3,4]);
+var trials_per_block = 60;
+var eta = 15;
+var goal = 'to try to remember series of letters'
+var match_rate = [.3,.7] //matches to no matches ratio
+var trials_per_practice_block = 12;
+lures = "OFF"
+
+
+// Fixed Paramaters
+how_many_back = nback_practice_sequence[0]
+var blocknum = 1;
+var trialnum = 1;
+var level_sequence = nback_practice_sequence.concat(nback_sequence);
+
+
+
+//**********************//
+// Prologue
+//**********************//
+
+// N-back Welcome
+  var nb_welcome = {
+      type: 'survey-text',
+      questions: [
+        {prompt: "Please enter your university email (or the one you used to sign up to SEMA3 with)", name: 'universityemail', required:true},
+        {prompt: "Please enter your student ID (so we can assign you SONA credit)", name: 'studentID', required:true}
+      ],
+      preamble: "<font size = '15' color='#002080'><b>Welcome to the experiment!</b></font><br><br> This experiment will run for about " + eta + " minutes. Your goal will be " + goal,
+      button_label: "Login",
+    };
+
+var age = {
+    type: "survey-demographics",
+    preamble: "<font size = '15' color='#002080'>Basic Information</font>",
+    questions: []
+};
+
+// Demographics
+var demographics = {
+  type: 'survey-multi-select',
+  preamble: "<font size = '15' color='#002080'>Basic Information</font>",
+  questions: [
+    {prompt: "Sex:", name: 'Sex', options: ["Male", "Female", "Non binary" ,"Prefer not to say"], required:true},
+    {prompt: "Which of the following best describes your ethnicity? (Select all that apply):", name: 'ethnicity', options: ["European (including White/Caucasian)", "South Asian (e.g., Indian, Pakistani, Sri Lankan, Bangladeshi)", "East Asian (e.g., Chinese, Japanese, Korean)", "Southeast Asian (e.g., Vietnamese, Thai, Filipino, Indonesian, Malaysian)", "Middle Eastern and/or North African (e.g., Lebanese, Iranian, Egyptian, Turkish)", "African (Sub-Saharan)", "Latin American (e.g., Central or South American)", "Pacific Islander (e.g., Maori, Samoan, Tongan, Fijian)", "First Nations/Indigenous or Torres Strait Islander", "Other"], required:true}     
+]
+};
+
+
+//**********************//
+// INSTRUCTIONS
+//**********************//
+
+
+    var nb_instructions = {
+      type: 'html-button-response',
+      timeline: [
+      {stimulus: '<div style="width: 800px;">'+
+        '<p>This experiment will test your ability to hold information in short-term, temporary memory. This is called working memory.</p>'+
+        '</div>'},
+        {stimulus: '<div class = centerbox><p class = block-text>In this experiment you will see a sequence of letters presented one at a time. Your job is to respond by pressing the <strong>M key</strong> when the letter matches the same letter that occured either 1, 2, 3, or 4 trials before, otherwise you should press the <strong>Z key</strong>.' +
+        ' The specific delay you should pay attention to will differ between blocks of trials, and you will be told the delay before starting a trial block.</p><p class = block-text>For instance, if the delay is 2, you are supposed to press the M key when the current letter matches the letter that occured 2 trials ago.' +
+        ' If you saw the sequence: H...G...V...T...B...T...B, you would press the M key on the last "T" and the last "B" and the Z key for every other letter.'}],
+      choices: ["Continue"]
+    }
+
+
+    var count = {
+      type: 'html-keyboard-response',
+      stimulus: jsPsych.timelineVariable('nums'),
+      choices: jsPsych.NO_KEYS,
+      trial_duration: 1000
+    }
+
+    var counter = {
+      timeline: [count],
+      timeline_variables: [
+        { nums: '<div style = "font-size: 46pt">3</div>' },
+        { nums: '<div style = "font-size: 46pt">2</div>'  },
+        { nums: '<div style = "font-size: 46pt">1</div>'},
+        { nums: '<div style = "font-size: 46pt">Go!</div>'},
+    ]}
+
+    var practice_start = {
+      type: 'html-button-response',
+      stimulus: '<div class = centerbox><p class = block-text>Starting practice.</p></div>',
+      choices: ["I'm ready to start!"],
+      post_trial_gap: 1000
+    }
+
+    var test_start = {
+      type: 'html-button-response',
+      stimulus: '<div class = centerbox><p class = center-block-text>Starting the test blocks.</p></div>',
+      choices: ["I'm ready to start!"],
+      post_trial_gap: 1000
+    }
+
+
+    var block_start = {
+      type: 'html-button-response',
+      stimulus: function(){
+        if(how_many_back == 1){
+          demo_seq = "H...H...V...T...T..C...B"
+          hit1 = "H"
+          hit2 = "T"
+        } else if(how_many_back == 2){
+          demo_seq ="H...G...V...T...B...T...B"
+          hit1 = "T"
+          hit2 = "B"
+        } else{
+          demo_seq = "H...G...V...H...B...V...B"
+          hit1 = "H"
+          hit2 = "V"
+        }
+        return('<div class = centerbox><p class = block-text><b>Delay '+how_many_back+'<br><br></b>In these next blocks, you should press the M key when the current letter matches the letter that appeared <b>' +
+        how_many_back +
+        ' trials</b> before. Otherwise press the Z key</p></div><br><p>For instance, if you saw the sequence: ' + demo_seq + ', you would press the M key on the last "' + hit1 +'" and the last "' + hit2 +'" and the Z key for every other letter.</p>')},
+      choices: ["I'm ready to start!"],
+      post_trial_gap: 1000
+    }
+
+
+
+//**********************//
+// TRIALS
+//**********************//
+
+
+// Test
+var n_back_trial = {
+      type: 'n-back',
+      stimulus: function() {
+        if(sequence.length < how_many_back){
+          var letter = jsPsych.randomization.sampleWithoutReplacement(jsPsych.timelineVariable('n_back_set'), 1)[0]
+        } else {
+          if(jsPsych.timelineVariable('match', true) == true){
+            var letter = sequence[sequence.length - how_many_back];
+          } else {
+            var possible_letters = jsPsych.randomization.sampleWithoutReplacement(jsPsych.timelineVariable('n_back_set' ), 4);
+
+            // Remove match
+            var index = possible_letters.indexOf(sequence[sequence.length - how_many_back]);
+            if (index > -1) {
+              possible_letters.splice(index, 1);
+            }
+            // Remove Lure
+            if(trialnum > 56 | lures == "OFF"){
+            var index = possible_letters.indexOf(sequence[sequence.length - how_many_back + 1]);
+            if (index > -1) {
+              possible_letters.splice(index, 1);
+            }
+            // Remove other lure
+            var index = possible_letters.indexOf(sequence[sequence.length - how_many_back - 1]);
+            if (index > -1) {
+              possible_letters.splice(index, 1);
+            }
+          }
+            //console.log(possible_letters)
+            letter = jsPsych.randomization.sampleWithoutReplacement(possible_letters, 1);
+
+            }
+
+            }
+        sequence.push(letter[0]);
+        return '<span style="font-size: 96px;">'+letter+'</span>'
+      },
+      choices: ['M', 'Z'],
+      stimulus_duration: 500,
+      trial_duration: 2500,
+      response_ends_trial: false,
+      prompt: function(){return("<div style = 'position: absolute; top: 6%; left:47%;'>Match "+how_many_back+" trials back</div>")},
+      on_finish: function(data){
+        data.level = how_many_back
+        data.nback_stimulus = sequence[sequence.length-1];
+        data.trialnum = trialnum;
+        data.blocknum = blocknum;
+        if(jsPsych.timelineVariable('match', true) == true & data.response == 'm'){
+          data.correct = true;
+        } else if(jsPsych.timelineVariable('match', true) == false & data.response == 'z'){
+        data.correct = true;
+      } else if(trialnum <= how_many_back & data.response == 'z'){
+      data.correct = true;
+    } else {
+        data.correct = false;
+      }},
+      data: {
+        trialtype: 'stimuli',
+        match: jsPsych.timelineVariable('match'),
+        n_back_set: jsPsych.timelineVariable('n_back_set'),
+      }
+    }
+
+    var feedback = {
+      type: 'n-back',
+      trial_duration: 1000,
+      response_ends_trial: false,
+      prompt: function(){return("<div style = 'position: absolute; top: 6%; left:47%;'>Match "+how_many_back+" trials back</div>")},
+      on_finish: function(data){
+        data.trialnum = trialnum;
+        data.blocknum = blocknum;
+        trialnum = trialnum + 1;
+      },
+      data: {
+        trialtype: 'feedback'
+      },
+      stimulus: function(){
+        var last_trial_correct = jsPsych.data.get().last(1).values()[0].correct;
+        if(last_trial_correct){
+          return '<div class = centerbox><div style="padding-top:100px;color:green;font-size:60px"; class = center-text>Correct!</div></div>'; // the parameter value has to be returned from the function
+        } else {
+          return '<div class = centerbox><div style="padding-top:100px;color:red;font-size:60px"; class = center-text>Incorrect</div></div>'; // the parameter value has to be returned from the function
+        }
+      }
+    }
+
+//**********************//
+// BLOCKS
+//**********************//
+
+
+
+
+
+// Practice Block
+var practice_sequence = {
+  timeline: [n_back_trial, feedback],
+  on_timeline_start:function(){
+    trialnum = 1;
+  },
+  on_timeline_finish: function(){
+      blocknum = blocknum + 1;
+      how_many_back = level_sequence[blocknum-1];
+  },
+  timeline_variables: [
+    {n_back_set: ["W", "A", "C", "H", "V", "T", "U", "Z"], match: true},
+    {n_back_set: ["W", "A", "C", "H", "V", "T", "U", "Z"], match: false}
+  ],
+  sample: {
+    type: 'custom',
+    fn: function(){
+
+      matchtrue = jsPsych.randomization.sampleWithReplacement([0,0,0], trials_per_practice_block*match_rate[0]);
+      matchfalse = jsPsych.randomization.sampleWithReplacement([1,1,1], trials_per_practice_block*match_rate[1] - how_many_back);
+      post_n = matchtrue.concat(matchfalse);
+      post_n = jsPsych.randomization.repeat(post_n, 1);
+
+
+      pre_n = jsPsych.randomization.sampleWithoutReplacement([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],how_many_back);
+      x = pre_n.concat(post_n);
+      console.log("Array: ", x);
+      return(x)
+
+}
+    }
+
+}
+
+i = 0;
+
+// Test Block
+var test_sequence = {
+  timeline: [n_back_trial, feedback],
+  on_timeline_start:function(){
+    trialnum = 1;
+  },
+  on_timeline_finish: function(){
+      blocknum = blocknum + 1;
+      how_many_back = level_sequence[blocknum-1];
+  },
+  timeline_variables: [
+    {n_back_set: ["P", "B", "G", "K", "M","Q", "R", "Y"], match: true},
+    {n_back_set: ["P", "B", "G", "K", "M","Q", "R", "Y"], match: false}
+  ],
+  sample: {
+    type: 'custom',
+    fn: function(){
+      i = i + 1;
+
+
+
+if(i > 1){
+      matchtrue = jsPsych.randomization.sampleWithReplacement([0,0,0], trials_per_block*match_rate[0]);
+      matchfalse = jsPsych.randomization.sampleWithReplacement([1,1,1], trials_per_block*match_rate[1] - how_many_back);
+      post_n = matchtrue.concat(matchfalse);
+      post_n = jsPsych.randomization.repeat(post_n, 1);
+      pre_n = jsPsych.randomization.sampleWithoutReplacement([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],how_many_back);
+      x = pre_n.concat(post_n);
+      console.log("Test Array: ", x);
+      return(x)
+    } else {
+
+      matchtrue = jsPsych.randomization.sampleWithReplacement([0,0,0], trials_per_block*match_rate[0]);
+      matchfalse = jsPsych.randomization.sampleWithReplacement([1,1,1], trials_per_block*match_rate[1] - nback_sequence[0]);
+      post_n = matchtrue.concat(matchfalse);
+      post_n = jsPsych.randomization.repeat(post_n, 1);
+      pre_n = jsPsych.randomization.sampleWithoutReplacement([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],nback_sequence[0]);
+      x = pre_n.concat(post_n);
+      console.log(nback_sequence)
+      console.log("Test Array: ", x);
+      return(x)
+
+
+
+    }
+
+
+
+
+
+}
+    }
+
+}
+
+var test_block = {
+  timeline: [block_start, counter,test_sequence],
+  repetitions: nback_sequence.length,
+  data: {
+    phase: 'test',
+  }
+}
+
+
+
+var practice_block = {
+  timeline: [block_start, counter,practice_sequence],
+  repetitions: nback_practice_sequence.length,
+  data: {
+    phase: 'practice',
+  }
+}
+
+
+//**********************//
+// EXPERIMENT
+//**********************//
+var full = {
+type: 'fullscreen',
+  fullscreen_mode: true
+}
+
+var nofull = {
+type: 'fullscreen',
+  fullscreen_mode: false
+}
+
+end_message = "The study is complete. Thank you for your participation.";
+ID = jsPsych.randomization.randomID();
+jsPsych.data.addProperties({ID: ID});
+
+  /* FLANKER */
+    /* experiment parameters */
+    var reps_per_trial_type = 12;
+    experimentname1 = "Flanker" // Should correspond to the foldername on the cogflex server
+    user = 'kit' // Should correspond to the user on the cogflex server
+    ID = jsPsych.randomization.randomID();
+
+
+    /*set up welcome block*/
+    var ft_welcome = {
+      type: 'html-keyboard-response',
+      stimulus: "Welcome to the experiment. Press any key to begin."
+    };
+
+    /*set up instructions block*/
+    var ft_instructions = {
+      type: 'html-keyboard-response',
+      stimulus: "<p>In this task, you will see five arrows on the screen, like the example below.</p>"+
+        "<img src='img/inc1.png'></img>"+
+        "<p>Press the left arrow key if the middle arrow is pointing left. (<)</p>"+
+        "<p>Press the right arrow key if the middle arrow is pointing right. (>)</p>"+
+        "<p>Press any key to begin.</p>",
+      post_trial_gap: 1000
+    };
+
+    /*defining stimuli*/
+    var test_stimuli = [
+      {
+        stimulus: "img/con1.png",
+        data: { stim_type: 'congruent', direction: 'left'}
+      },
+      {
+        stimulus: "img/con2.png",
+        data: { stim_type: 'congruent', direction: 'right'}
+      },
+      {
+        stimulus: "img/inc1.png",
+        data: { stim_type: 'incongruent', direction: 'right'}
+      },
+      {
+        stimulus: "img/inc2.png",
+        data: { stim_type: 'incongruent', direction: 'left'}
+      }
+    ];
+
+    /* defining test timeline */
+    var ft_test = {
+      timeline: [{
+        type: 'image-keyboard-response',
+        choices: ['ArrowLeft', 'ArrowRight'],
+        trial_duration: 1500,
+        stimulus: jsPsych.timelineVariable('stimulus'),
+        data: jsPsych.timelineVariable('data'),
+        on_finish: function(data) {
+          var correct = false;
+          if (data.direction == 'left' && jsPsych.pluginAPI.compareKeys(data.response, 'ArrowLeft') && data.rt > -1) {
+            correct = true;
+          } else if (data.direction == 'right' && jsPsych.pluginAPI.compareKeys(data.response, 'ArrowRight') && data.rt > -1) {
+            correct = true;
+          }
+          data.correct = correct;
+        },
+        post_trial_gap: function() {
+            return Math.floor(Math.random() * 1500) + 500;
+        }
+      }],
+      timeline_variables: test_stimuli,
+      sample: {type: 'fixed-repetitions', size: reps_per_trial_type}
+    };
+
+    /*defining debriefing block*/
+    var ft_debrief = {
+      type: 'html-keyboard-response',
+      stimulus: function() {
+        var total_trials = jsPsych.data.get().filter({trial_type: 'image-keyboard-response'}).count();
+        var accuracy = Math.round(jsPsych.data.get().filter({correct: true}).count() / total_trials * 100);
+        var congruent_rt = Math.round(jsPsych.data.get().filter({correct: true, stim_type: 'congruent'}).select('rt').mean());
+        var incongruent_rt = Math.round(jsPsych.data.get().filter({correct: true, stim_type: 'incongruent'}).select('rt').mean());
+        return "<p>You responded correctly on <strong>"+accuracy+"%</strong> of the trials.</p> " +
+        "<p>Your average response time for congruent trials was <strong>" + congruent_rt + "ms</strong>.</p>"+
+        "<p>Your average response time for incongruent trials was <strong>" + incongruent_rt + "ms</strong>.</p>"+
+        "<p>Press any key to complete the experiment. Thank you!</p>";
+      }
+    };
+
+    // manually preload images due to presenting them with timeline variables
+    var images = ["img/con1.png","img/con2.png","img/inc1.png","img/inc2.png"];
+    var preload = {
+      type: 'preload',
+      images: images
+    };
+
+ jsPsych.init({
+        timeline: [ nb_welcome, full, age, demographics, nb_instructions, practice_start, practice_block, test_start, test_block, nofull, ft_welcome, ft_instructions, ft_test, ft_debrief],
+   on_finish: function(data){ var filestore = ID + '.csv'; var all_data = jsPsych.data.get(); saveDataToDataPipe(filestore, all_data.csv()); all_data.localSave('csv',filestore);}
+    });
+
+//
+
+//**********************//
+// SAVING to DataPipe
+//**********************//
+
+function saveDataToDataPipe(filename, filedata){
+    fetch("https://pipe.jspsych.org/api/data/", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "*/*",
+              },
+              body: JSON.stringify({
+                experimentID: "XyxqenJDm9mo",
+                filename: filename,
+                data: filedata,
+              }),
+            });   
+}
+ 
+function saveData(filename, experiment, filedata){
+    	var filename = '../users/kit/' + experiment + '/Data/' + filename;
+       $.ajax({
+          type:'post',
+          cache: false,
+          url: 'http://cogflex.com.au/jspsych/jsPsych.php', // this is the path to the above PHP script
+          data: {filename: filename, filedata: filedata}
+       });
+    }
+
+// Add properties
+jsPsych.data.addProperties({ID: ID});
+
+// Save
+function saveData(filename, experiment, filedata){
+        var filename = '../users/'+user+'/' + experiment + '/Data/' + filename;
+       $.ajax({
+          type:'post',
+          cache: false,
+          url: 'http://cogflex.com.au/jspsych/jsPsych.php', // this is the path to the above PHP script
+          data: {filename: filename, filedata: filedata}
+       });
+    }
+
+
+
+
+
+</script>
+</html>
+
+  </script>
+</html>
